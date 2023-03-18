@@ -2,7 +2,7 @@ package de.ialistannen.traceaman;
 
 public class TestClass {
 
-  public static int foo() {
+  public static int foo(int input1, int input2) {
     int x = 20;
     int b = 10;
     if (x > 10) {
@@ -13,11 +13,11 @@ public class TestClass {
     } else {
       System.out.println(x + "> + " + b + " = " + (x + b));
     }
-    return x + b;
+    return x + b + input1 + input2;
   }
 
   public static void main(String[] args) {
-    foo();
+    foo(21, 42);
   }
 
   public static class Inner {

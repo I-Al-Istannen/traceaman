@@ -33,6 +33,18 @@ public class ObjectIntrospection {
     return introspectFields(receiver, 0);
   }
 
+  public RuntimeReturnedValue introspectReturnValue(
+      String methodName, Object returned, List<Object> parameters, List<String> stacktrace
+  ) throws IllegalAccessException {
+    List<RuntimeValue> fields = introspectFields(returned, 0);
+    List<Object> arrayValues = introspectArrayValues(returned, 0);
+
+    return new RuntimeReturnedValue(
+        Kind.RETURN, methodName, returned.getClass(), returned.toString(),
+        fields, arrayValues, parameters, stacktrace
+    );
+  }
+
   private RuntimeValue introspect(
       Kind kind,
       String name,
@@ -40,15 +52,8 @@ public class ObjectIntrospection {
       Object object,
       int depth
   ) throws IllegalAccessException {
-    List<RuntimeValue> fields = List.of();
-    List<Object> arrayElements = List.of();
-
-    if (depth <= MAX_DEPTH && !isBasicallyPrimitive(type)) {
-      fields = introspectFields(object, depth);
-    }
-    if (type.isArray()) {
-      arrayElements = introspectArrayValues(object, depth);
-    }
+    List<RuntimeValue> fields = introspectFields(object, depth);
+    List<Object> arrayElements = introspectArrayValues(object, depth);
 
     return new RuntimeValue(
         kind, name, type, object.toString(), fields, arrayElements
@@ -58,6 +63,10 @@ public class ObjectIntrospection {
   private List<RuntimeValue> introspectFields(
       Object object, int depth
   ) throws IllegalAccessException {
+    if (depth > MAX_DEPTH || isBasicallyPrimitive(object.getClass())) {
+      return List.of();
+    }
+
     ObjectNode node = objectGraph.getNode(object.getClass());
     List<RuntimeValue> fields = new ArrayList<>();
 
@@ -74,6 +83,10 @@ public class ObjectIntrospection {
   private List<Object> introspectArrayValues(
       Object array, int depth
   ) throws IllegalAccessException {
+    if (!array.getClass().isArray()) {
+      return List.of();
+    }
+
     List<Object> arrayElements = new ArrayList<>();
     Class<?> componentType = array.getClass().getComponentType();
 

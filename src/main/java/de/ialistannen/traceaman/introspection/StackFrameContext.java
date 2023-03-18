@@ -18,17 +18,27 @@ public class StackFrameContext {
     this.runtimeValueCollection = runtimeValueCollection;
   }
 
-  public static StackFrameContext capture(int skipCount, List<RuntimeValue> runtimeValues) {
-    List<String> stacktrace = StackWalker.getInstance()
+  public static StackFrameContext forValues(List<RuntimeValue> runtimeValues) {
+    return new StackFrameContext(getStacktrace(), runtimeValues);
+  }
+
+  public static List<String> getStacktrace() {
+    return StackWalker.getInstance()
         .walk(frames ->
-            frames.skip(skipCount + 1)
+            frames.dropWhile(StackFrameContext::isOurCode)
                 .map(StackFrameContext::stackFrameToString)
                 .collect(Collectors.toList())
         );
-    return new StackFrameContext(stacktrace, runtimeValues);
   }
 
   private static String stackFrameToString(StackFrame frame) {
     return frame.getMethodName() + ":" + frame.getLineNumber() + ", " + frame.getClassName();
+  }
+
+  private static boolean isOurCode(StackFrame frame) {
+    if (!frame.getClassName().startsWith("de.ialistannen.traceaman")) {
+      return false;
+    }
+    return !frame.getClassName().endsWith("TestClass");
   }
 }

@@ -30,4 +30,24 @@ public class Classes {
            || clazz == Boolean.class || clazz == Character.class;
   }
 
+  public static Class<?> getClassFromString(String className) {
+    return switch (className) {
+      case "byte" -> byte.class;
+      case "short" -> short.class;
+      case "int" -> int.class;
+      case "long" -> long.class;
+      case "float" -> float.class;
+      case "double" -> double.class;
+      case "boolean" -> boolean.class;
+      case "char" -> char.class;
+      case "void" -> void.class;
+      default -> {
+        try {
+          yield Class.forName(className);
+        } catch (ClassNotFoundException e) {
+          throw new RuntimeException(e);
+        }
+      }
+    };
+  }
 }

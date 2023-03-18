@@ -3,6 +3,7 @@ package de.ialistannen.traceaman;
 import com.squareup.moshi.Moshi;
 import de.ialistannen.traceaman.introspection.LineSnapshot;
 import de.ialistannen.traceaman.introspection.ObjectIntrospection;
+import de.ialistannen.traceaman.introspection.RuntimeReturnedValue;
 import de.ialistannen.traceaman.introspection.RuntimeValue;
 import de.ialistannen.traceaman.introspection.StackFrameContext;
 import de.ialistannen.traceaman.util.Json;
@@ -12,25 +13,20 @@ import java.util.List;
 
 public class ContextCollector {
 
-  /**
-   * logImpl and log
-   */
-  private static final int SKIP_FRAMES_COUNT = 2;
-
   private static final Moshi MOSHI = Json.createMoshi();
   private static final ObjectIntrospection INTROSPECTOR = new ObjectIntrospection();
 
-  public static void log(
+  public static void logLine(
       String className, int lineNumber, Object receiver, LocalVariable[] localVariables
   ) {
     try {
-      logImpl(className, lineNumber, receiver, localVariables);
+      logLineImpl(className, lineNumber, receiver, localVariables);
     } catch (ReflectiveOperationException e) {
       throw new RuntimeException(e);
     }
   }
 
-  private static void logImpl(
+  private static void logLineImpl(
       String className, int lineNumber, Object receiver, LocalVariable[] localVariables
   ) throws ReflectiveOperationException {
     List<RuntimeValue> values = new ArrayList<>();
@@ -42,12 +38,28 @@ public class ContextCollector {
       values.addAll(INTROSPECTOR.introspectReceiver(receiver));
     }
 
-    StackFrameContext stackFrameContext = StackFrameContext.capture(SKIP_FRAMES_COUNT, values);
+    StackFrameContext stackFrameContext = StackFrameContext.forValues(values);
     LineSnapshot lineSnapshot = new LineSnapshot(className, lineNumber, List.of(stackFrameContext));
 
     System.out.println(
         MOSHI.adapter(LineSnapshot.class).indent("  ").lenient().toJson(lineSnapshot)
     );
+  }
+
+  public static void logReturn(
+      Object returnValue, String className
+  ) {
+    try {
+      RuntimeReturnedValue returned = INTROSPECTOR.introspectReturnValue(
+          className, returnValue, List.of(), StackFrameContext.getStacktrace()
+      );
+
+      System.out.println(
+          MOSHI.adapter(RuntimeReturnedValue.class).indent("  ").lenient().toJson(returned)
+      );
+    } catch (ReflectiveOperationException e) {
+      throw new RuntimeException(e);
+    }
   }
 
 }
