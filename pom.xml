@@ -12,6 +12,7 @@
     <maven.compiler.source>17</maven.compiler.source>
     <maven.compiler.target>17</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <moshi.version>1.14.0</moshi.version>
   </properties>
 
   <build>
@@ -82,7 +83,18 @@
     <dependency>
       <groupId>net.bytebuddy</groupId>
       <artifactId>byte-buddy-dep</artifactId>
-      <version>1.14.1</version>
+      <version>1.14.2</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.squareup.moshi</groupId>
+      <artifactId>moshi</artifactId>
+      <version>${moshi.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.squareup.moshi</groupId>
+      <artifactId>moshi-adapters</artifactId>
+      <version>${moshi.version}</version>
     </dependency>
 
     <!-- https://mvnrepository.com/artifact/org.ow2.asm/asm-tree -->

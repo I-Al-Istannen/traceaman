@@ -1,22 +1,18 @@
 package de.ialistannen.traceaman;
 
-import static org.objectweb.asm.Opcodes.ATHROW;
-import static org.objectweb.asm.Opcodes.IRETURN;
-import static org.objectweb.asm.Opcodes.RETURN;
-
+import de.ialistannen.traceaman.util.LocalVariable;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.Instrumentation;
+import java.lang.reflect.Modifier;
 import java.security.ProtectionDomain;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import net.bytebuddy.ClassFileVersion;
-import net.bytebuddy.description.field.FieldDescription.ForLoadedField;
+import net.bytebuddy.description.method.MethodDescription.ForLoadedConstructor;
 import net.bytebuddy.description.method.MethodDescription.ForLoadedMethod;
+import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.description.type.TypeDescription.Generic.OfNonGenericType.ForLoadedType;
 import net.bytebuddy.dynamic.TargetType;
 import net.bytebuddy.dynamic.scaffold.TypeInitializer.None;
@@ -27,11 +23,14 @@ import net.bytebuddy.implementation.auxiliary.AuxiliaryType.NamingStrategy.Enume
 import net.bytebuddy.implementation.bytecode.Duplication;
 import net.bytebuddy.implementation.bytecode.StackManipulation;
 import net.bytebuddy.implementation.bytecode.StackManipulation.Compound;
+import net.bytebuddy.implementation.bytecode.TypeCreation;
 import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.implementation.bytecode.assign.Assigner.Typing;
 import net.bytebuddy.implementation.bytecode.collection.ArrayFactory;
+import net.bytebuddy.implementation.bytecode.constant.ClassConstant;
+import net.bytebuddy.implementation.bytecode.constant.IntegerConstant;
+import net.bytebuddy.implementation.bytecode.constant.NullConstant;
 import net.bytebuddy.implementation.bytecode.constant.TextConstant;
-import net.bytebuddy.implementation.bytecode.member.FieldAccess;
 import net.bytebuddy.implementation.bytecode.member.MethodInvocation;
 import net.bytebuddy.implementation.bytecode.member.MethodVariableAccess;
 import org.objectweb.asm.ClassReader;
@@ -46,6 +45,12 @@ import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.util.TraceClassVisitor;
 
 public class AgentMain {
+
+  private static final ExtractableView BYTE_BUDDY_CONTEXT = Factory.INSTANCE.make(
+      TargetType.DESCRIPTION, new Enumerating("F"),
+      None.INSTANCE, ClassFileVersion.JAVA_V17, ClassFileVersion.JAVA_V17,
+      FrameGeneration.DISABLED
+  );
 
   public static void premain(String arguments, Instrumentation instrumentation) throws IOException {
     instrumentation.addTransformer(
@@ -87,10 +92,6 @@ public class AgentMain {
 
       List<LocalVariableNode> liveVariables = new ArrayList<>();
       for (AbstractInsnNode instruction : method.instructions) {
-        int op = instruction.getOpcode();
-        if ((op >= IRETURN && op <= RETURN) || op == ATHROW) {
-          System.out.println(instruction + " is a return");
-        }
         if (instruction instanceof LabelNode node) {
           for (LocalVariableNode localVariable : method.localVariables) {
             if (localVariable.start == node) {
@@ -99,72 +100,15 @@ public class AgentMain {
           }
           liveVariables.removeIf(it -> it.end == node);
         }
+
         if (instruction instanceof LineNumberNode node) {
           System.out.println(node.start.getLabel() + " " + node.line);
           System.out.println(liveVariables);
           System.out.println();
-          List<StackManipulation> manipulations = new ArrayList<>();
-
-          List<StackManipulation> values = new ArrayList<>();
-          for (LocalVariableNode liveVariable : liveVariables) {
-            Class<?> type = getClassFromString(Type.getType(liveVariable.desc).getClassName());
-            values.add(new Compound(
-                new TextConstant(liveVariable.name),
-                MethodVariableAccess.of(new ForLoadedType(type)).loadFrom(liveVariable.index),
-                Assigner.GENERICS_AWARE.assign(
-                    ForLoadedType.of(type), ForLoadedType.of(Object.class), Typing.STATIC
-                ),
-                MethodInvocation.invoke(new ForLoadedMethod(
-                    Map.class.getMethod("entry", Object.class, Object.class)
-                ))
-            ));
-          }
-          System.out.println(values.size());
-          manipulations.add(FieldAccess.forField(new ForLoadedField(
-              System.class.getField("out")
-          )).read());
-          manipulations.add(Duplication.of(new ForLoadedType(Object.class)));
-          manipulations.add(Duplication.of(new ForLoadedType(Object.class)));
-          manipulations.add(new TextConstant("Start of line " + node.line));
-          manipulations.add(MethodInvocation.invoke(new ForLoadedMethod(
-              PrintStream.class.getMethod("println", String.class)
-          )));
-          manipulations.add(
-              ArrayFactory.forType(ForLoadedType.of(Object.class))
-                  .withValues(values)
+          StackManipulation callLineLog = getCallToLineLogMethod(
+              className, method, liveVariables, node
           );
-          manipulations.add(Assigner.DEFAULT.assign(
-              ForLoadedType.of(Object[].class), ForLoadedType.of(Object.class), Typing.STATIC
-          ));
-          manipulations.add(MethodInvocation.invoke(new ForLoadedMethod(
-              Arrays.class.getMethod("toString", Object[].class)
-          )));
-          manipulations.add(MethodInvocation.invoke(new ForLoadedMethod(
-              PrintStream.class.getMethod("println", Object.class)
-          )));
-          manipulations.add(MethodInvocation.invoke(new ForLoadedMethod(
-              PrintStream.class.getMethod("println")
-          )));
-
-          Compound compound = new Compound(manipulations);
-          ExtractableView context = Factory.INSTANCE.make(
-              TargetType.DESCRIPTION, new Enumerating("F"),
-              None.INSTANCE, ClassFileVersion.JAVA_V17, ClassFileVersion.JAVA_V17,
-              FrameGeneration.DISABLED
-          );
-          int sizeBefore = method.instructions.size();
-          compound.apply(method, context);
-          List<AbstractInsnNode> newNodes = new ArrayList<>();
-          for (int i = sizeBefore; i < method.instructions.size(); i++) {
-            AbstractInsnNode e = method.instructions.get(i);
-            newNodes.add(e);
-          }
-          newNodes.forEach(it -> method.instructions.remove(it));
-          AbstractInsnNode current = node;
-          for (AbstractInsnNode newNode : newNodes) {
-            method.instructions.insert(current, newNode);
-            current = newNode;
-          }
+          applyStackManipulation(method, node, callLineLog);
         }
       }
     }
@@ -173,6 +117,98 @@ public class AgentMain {
     classNode.accept(new TraceClassVisitor(writer, new PrintWriter(System.err)));
 
     return writer.toByteArray();
+  }
+
+  private static StackManipulation getCallToLineLogMethod(
+      String className,
+      MethodNode method,
+      List<LocalVariableNode> liveVariables,
+      LineNumberNode node
+  ) throws NoSuchMethodException {
+    List<StackManipulation> manipulations = new ArrayList<>();
+
+    List<StackManipulation> values = new ArrayList<>();
+    for (LocalVariableNode liveVariable : liveVariables) {
+      Class<?> type = getClassFromString(Type.getType(liveVariable.desc).getClassName());
+      values.add(new Compound(List.of(
+          // new LocalVariable(
+          TypeCreation.of(TypeDescription.ForLoadedType.of(LocalVariable.class)),
+          Duplication.of(TypeDescription.ForLoadedType.of(LocalVariable.class)),
+          //   String name
+          new TextConstant(liveVariable.name),
+          // , Class<?> type
+          ClassConstant.of(TypeDescription.ForLoadedType.of(type)),
+          // , Object value
+          MethodVariableAccess.of(ForLoadedType.of(type)).loadFrom(liveVariable.index),
+          Assigner.GENERICS_AWARE.assign(
+              ForLoadedType.of(type), ForLoadedType.of(Object.class), Typing.STATIC
+          ),
+          // );
+          MethodInvocation.invoke(new ForLoadedConstructor(
+              LocalVariable.class.getConstructor(String.class, Class.class, Object.class)
+          ))
+      )));
+    }
+    // Stack is empty.
+
+    //  public static void log(
+    //    String file,
+    manipulations.add(new TextConstant(className));
+    //    int lineNumber,
+    manipulations.add(IntegerConstant.forValue(node.line));
+    //    Object receiver,
+    if (Modifier.isStatic(method.access)) {
+      manipulations.add(NullConstant.INSTANCE);
+    } else {
+      manipulations.add(MethodVariableAccess.loadThis());
+    }
+    //    LocalVariable[] localVariables
+    manipulations.add(
+        ArrayFactory.forType(ForLoadedType.of(LocalVariable.class))
+            .withValues(values)
+    );
+    //  );
+    manipulations.add(MethodInvocation.invoke(new ForLoadedMethod(
+        ContextCollector.class.getMethod(
+            "log",
+            String.class, int.class, Object.class, LocalVariable[].class
+        )
+    )));
+
+    return new Compound(manipulations);
+  }
+
+  /**
+   * Applies a stack manipulation and adds the resulting instructions.
+   *
+   * @param method the method to add it to
+   * @param insertAfter the node to insert it after
+   * @param manipulation the stack manipulation to apply
+   * @return the new current instruction
+   */
+  private static AbstractInsnNode applyStackManipulation(
+      MethodNode method,
+      AbstractInsnNode insertAfter,
+      StackManipulation manipulation
+  ) {
+    int sizeBefore = method.instructions.size();
+
+    manipulation.apply(method, BYTE_BUDDY_CONTEXT);
+
+    List<AbstractInsnNode> newNodes = new ArrayList<>();
+    for (int i = sizeBefore; i < method.instructions.size(); i++) {
+      AbstractInsnNode e = method.instructions.get(i);
+      newNodes.add(e);
+    }
+    newNodes.forEach(it -> method.instructions.remove(it));
+
+    AbstractInsnNode current = insertAfter;
+    for (AbstractInsnNode newNode : newNodes) {
+      method.instructions.insert(current, newNode);
+      current = newNode;
+    }
+
+    return current;
   }
 
   public static Class<?> getClassFromString(String className) {
