@@ -123,6 +123,10 @@ public class AgentMain {
 
     List<StackManipulation> values = new ArrayList<>();
     for (LocalVariableNode liveVariable : liveVariables) {
+      // Skip "this" object
+      if (liveVariable.index == 0 && !Modifier.isStatic(method.access)) {
+        continue;
+      }
       Class<?> type = Classes.getClassFromString(Type.getType(liveVariable.desc).getClassName());
       values.add(createLocalVariable(liveVariable.name, liveVariable.index, type));
     }
