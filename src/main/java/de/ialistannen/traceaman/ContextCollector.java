@@ -8,8 +8,13 @@ import de.ialistannen.traceaman.introspection.RuntimeValue;
 import de.ialistannen.traceaman.introspection.StackFrameContext;
 import de.ialistannen.traceaman.util.Json;
 import de.ialistannen.traceaman.util.LocalVariable;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
+import okio.Okio;
 
 public class ContextCollector {
 
@@ -41,9 +46,15 @@ public class ContextCollector {
     StackFrameContext stackFrameContext = StackFrameContext.forValues(values);
     LineSnapshot lineSnapshot = new LineSnapshot(className, lineNumber, List.of(stackFrameContext));
 
-    System.out.println(
-        MOSHI.adapter(LineSnapshot.class).indent("  ").lenient().toJson(lineSnapshot)
-    );
+    try {
+      Files.writeString(
+          Path.of("/home/i_al_istannen/.temp/log.txt"),
+          MOSHI.adapter(LineSnapshot.class).lenient().toJson(lineSnapshot) + "\n",
+          StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.APPEND
+      );
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   public static void logReturn(
@@ -54,10 +65,12 @@ public class ContextCollector {
           className, returnValue, List.of(), StackFrameContext.getStacktrace()
       );
 
-      System.out.println(
-          MOSHI.adapter(RuntimeReturnedValue.class).indent("  ").lenient().toJson(returned)
+      Files.writeString(
+          Path.of("/home/i_al_istannen/.temp/log.txt"),
+          MOSHI.adapter(RuntimeReturnedValue.class).lenient().toJson(returned) + "\n",
+          StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.APPEND
       );
-    } catch (ReflectiveOperationException e) {
+    } catch (ReflectiveOperationException | IOException e) {
       throw new RuntimeException(e);
     }
   }

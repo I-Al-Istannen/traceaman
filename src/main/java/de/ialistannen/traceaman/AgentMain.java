@@ -65,14 +65,14 @@ public class AgentMain {
   }
 
   private static byte[] getBytes(String className, byte[] classfileBuffer) throws Exception {
-    if (!className.endsWith("TestClass")) {
+    if (!className.endsWith("WebCassandraDirectoryProvider")) {
       return classfileBuffer;
     }
     ClassNode classNode = new ClassNode();
     ClassReader classReader = new ClassReader(classfileBuffer);
     classReader.accept(classNode, 0);
     for (MethodNode method : classNode.methods) {
-      if (!method.name.equals("foo")) {
+      if (!method.name.equals("extract")) {
         continue;
       }
 
@@ -197,7 +197,7 @@ public class AgentMain {
     );
     manipulations.add(Duplication.of(typeDesc));
     manipulations.add(Assigner.GENERICS_AWARE.assign(
-        typeDesc, ForLoadedType.of(Object.class), Typing.STATIC
+        typeDesc, ForLoadedType.of(Object.class), Typing.DYNAMIC
     ));
     //   String className
     manipulations.add(new TextConstant(className));

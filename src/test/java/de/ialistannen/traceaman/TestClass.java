@@ -1,5 +1,7 @@
 package de.ialistannen.traceaman;
 
+import java.util.List;
+
 public class TestClass {
 
   public static int foo(int input1, int input2) {
@@ -8,6 +10,7 @@ public class TestClass {
     if (x > 10) {
       int c = 42;
       Inner inner = new Inner(42, "this is nice");
+      List<String> hello = List.of("hello");
       System.out.println(x + "< + " + b + " = " + (x + b));
       x += 10;
     } else {

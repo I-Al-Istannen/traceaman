@@ -30,6 +30,12 @@
 
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.0.0</version>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>
         <version>3.3.0</version>
         <executions>
@@ -54,10 +60,18 @@
             </transformer>
           </transformers>
           <relocations>
-<!--            <relocation>-->
-<!--              <pattern>net.bytebuddy</pattern>-->
-<!--              <shadedPattern>rtf.net.bytebuddy</shadedPattern>-->
-<!--            </relocation>-->
+            <relocation>
+              <pattern>net.bytebuddy</pattern>
+              <shadedPattern>rtf.net.bytebuddy</shadedPattern>
+            </relocation>
+            <relocation>
+              <pattern>org.objectweb.asm</pattern>
+              <shadedPattern>rtf.org.objectweb.asm</shadedPattern>
+            </relocation>
+            <relocation>
+              <pattern>kotlin</pattern>
+              <shadedPattern>rtf.kotlin</shadedPattern>
+            </relocation>
           </relocations>
           <filters>
             <filter>
