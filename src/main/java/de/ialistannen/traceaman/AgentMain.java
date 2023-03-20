@@ -4,14 +4,18 @@ import static org.objectweb.asm.Opcodes.ATHROW;
 import static org.objectweb.asm.Opcodes.IRETURN;
 import static org.objectweb.asm.Opcodes.RETURN;
 
+import de.ialistannen.traceaman.introspection.SahabOutput;
 import de.ialistannen.traceaman.util.ByteBuddyHelper;
 import de.ialistannen.traceaman.util.ByteBuddyHelper.InsertPosition;
 import de.ialistannen.traceaman.util.Classes;
+import de.ialistannen.traceaman.util.Json;
 import de.ialistannen.traceaman.util.LocalVariable;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.Instrumentation;
 import java.lang.reflect.Modifier;
+import java.nio.file.Path;
 import java.security.ProtectionDomain;
 import java.util.ArrayList;
 import java.util.List;
@@ -33,6 +37,8 @@ import net.bytebuddy.implementation.bytecode.constant.NullConstant;
 import net.bytebuddy.implementation.bytecode.constant.TextConstant;
 import net.bytebuddy.implementation.bytecode.member.MethodInvocation;
 import net.bytebuddy.implementation.bytecode.member.MethodVariableAccess;
+import okio.BufferedSink;
+import okio.Okio;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Type;
@@ -62,6 +68,16 @@ public class AgentMain {
           }
         }, true
     );
+    Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+      try (BufferedSink sink = Okio.buffer(Okio.sink(Path.of("trace.json")))) {
+        Json.createMoshi()
+            .adapter(SahabOutput.class)
+            .indent("  ")
+            .toJson(sink, ContextCollector.getSahabOutput());
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }));
   }
 
   private static byte[] getBytes(String className, byte[] classfileBuffer) throws Exception {
