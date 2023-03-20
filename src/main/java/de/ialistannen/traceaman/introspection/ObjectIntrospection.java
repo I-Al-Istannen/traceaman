@@ -76,6 +76,9 @@ public class ObjectIntrospection {
     List<RuntimeValue> fields = new ArrayList<>();
 
     for (Field field : node.getFields()) {
+      if (field.isSynthetic()) {
+        continue;
+      }
       if (field.getName().startsWith("CGLIB$")) {
         continue;
       }
