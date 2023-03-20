@@ -7,7 +7,7 @@ public class RuntimeValue {
   private final Kind kind;
   private final String name;
   private final Class<?> type;
-  private final String valueAsString;
+  private final String value;
   private final List<RuntimeValue> fields;
   private final List<Object> arrayElements;
 
@@ -15,14 +15,14 @@ public class RuntimeValue {
       Kind kind,
       String name,
       Class<?> type,
-      String valueAsString,
+      String value,
       List<RuntimeValue> fields,
       List<Object> arrayElements
   ) {
     this.kind = kind;
     this.name = name;
     this.type = type;
-    this.valueAsString = valueAsString;
+    this.value = value;
     this.fields = fields;
     this.arrayElements = arrayElements;
   }
@@ -31,8 +31,8 @@ public class RuntimeValue {
     return kind;
   }
 
-  public Object getValueAsString() {
-    return valueAsString;
+  public Object getValue() {
+    return value;
   }
 
   public String getName() {
