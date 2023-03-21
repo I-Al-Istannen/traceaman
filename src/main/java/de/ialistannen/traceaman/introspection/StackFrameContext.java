@@ -6,8 +6,8 @@ import java.util.stream.Collectors;
 
 public class StackFrameContext {
 
-  private final int positionFromTopInStackTrace;
-  private final String location;
+  private transient final int positionFromTopInStackTrace;
+  private transient final String location;
   private final List<String> stackTrace;
   private final List<RuntimeValue> runtimeValueCollection;
 
@@ -16,6 +16,14 @@ public class StackFrameContext {
     this.location = stackTrace.get(0);
     this.stackTrace = stackTrace;
     this.runtimeValueCollection = runtimeValueCollection;
+  }
+
+  public List<String> getStackTrace() {
+    return stackTrace;
+  }
+
+  public List<RuntimeValue> getRuntimeValueCollection() {
+    return runtimeValueCollection;
   }
 
   public static StackFrameContext forValues(List<RuntimeValue> runtimeValues) {
