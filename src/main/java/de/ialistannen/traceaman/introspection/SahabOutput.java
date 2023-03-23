@@ -6,16 +6,16 @@ import java.util.List;
 
 public class SahabOutput {
 
-  private final List<LineSnapshot> breakpoints;
+  private final List<LineSnapshot> breakpoint;
   private final List<RuntimeReturnedValue> returns;
 
   public SahabOutput() {
-    this.breakpoints = Collections.synchronizedList(new ArrayList<>());
+    this.breakpoint = Collections.synchronizedList(new ArrayList<>());
     this.returns = Collections.synchronizedList(new ArrayList<>());
   }
 
-  public List<LineSnapshot> getBreakpoints() {
-    return breakpoints;
+  public List<LineSnapshot> getBreakpoint() {
+    return breakpoint;
   }
 
   public List<RuntimeReturnedValue> getReturns() {

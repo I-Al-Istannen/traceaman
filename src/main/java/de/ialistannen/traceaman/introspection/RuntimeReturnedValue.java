@@ -5,7 +5,9 @@ import java.util.List;
 public class RuntimeReturnedValue extends RuntimeValue {
 
   private final List<Object> arguments;
-  private final List<String> stacktrace;
+  private final List<String> stackTrace;
+
+  private final String location;
 
   RuntimeReturnedValue(
       Kind kind,
@@ -15,18 +17,25 @@ public class RuntimeReturnedValue extends RuntimeValue {
       List<RuntimeValue> fields,
       List<Object> arrayElements,
       List<Object> parameters,
-      List<String> stacktrace) {
+      List<String> stackTrace,
+      String location
+  ) {
     super(kind, name, type, valueAsString, fields, arrayElements);
 
     this.arguments = parameters;
-    this.stacktrace = stacktrace;
+    this.stackTrace = stackTrace;
+    this.location = location;
   }
 
   public List<Object> getArguments() {
     return arguments;
   }
 
-  public List<String> getStacktrace() {
-    return stacktrace;
+  public List<String> getStackTrace() {
+    return stackTrace;
+  }
+
+  public String getLocation() {
+      return location;
   }
 }
