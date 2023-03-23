@@ -4,6 +4,7 @@ import static de.ialistannen.traceaman.util.Classes.isBasicallyPrimitive;
 
 import de.ialistannen.traceaman.introspection.ObjectGraph.ObjectNode;
 import de.ialistannen.traceaman.introspection.RuntimeValue.Kind;
+import de.ialistannen.traceaman.module.ModuleCracker;
 import de.ialistannen.traceaman.util.LocalVariable;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
@@ -14,9 +15,12 @@ import java.util.Objects;
 public class ObjectIntrospection {
 
   public static final int MAX_DEPTH = 3;
+
+  private final ModuleCracker moduleCracker;
   private final ObjectGraph objectGraph;
 
-  public ObjectIntrospection() {
+  public ObjectIntrospection(ModuleCracker moduleCracker) {
+    this.moduleCracker = moduleCracker;
     this.objectGraph = new ObjectGraph();
   }
 
@@ -42,7 +46,8 @@ public class ObjectIntrospection {
 
     return new RuntimeReturnedValue(
         // FIXME: Use method return type
-        Kind.RETURN, methodName, returned == null ? null : returned.getClass(), Objects.toString(returned),
+        Kind.RETURN, methodName, returned == null ? null : returned.getClass(),
+        Objects.toString(returned),
         fields, arrayValues, parameters, stacktrace
     );
   }
@@ -82,11 +87,17 @@ public class ObjectIntrospection {
       if (field.getName().startsWith("CGLIB$")) {
         continue;
       }
-      if (field.trySetAccessible()) {
-        fields.add(
-            introspect(Kind.FIELD, field.getName(), field.getType(), field.get(object), depth + 1)
-        );
+      if (!field.trySetAccessible()) {
+        System.out.println("Cracking " + field);
+        moduleCracker.crack(field.getDeclaringClass());
+        moduleCracker.crack(field.getType());
       }
+      if (!field.trySetAccessible()) {
+        throw new AssertionError("Could not crack type " + field.getDeclaringClass());
+      }
+      fields.add(
+          introspect(Kind.FIELD, field.getName(), field.getType(), field.get(object), depth + 1)
+      );
     }
 
     return fields;

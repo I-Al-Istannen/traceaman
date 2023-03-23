@@ -12,7 +12,9 @@ import java.util.List;
 
 public class ContextCollector {
 
-  private static final ObjectIntrospection INTROSPECTOR = new ObjectIntrospection();
+  private static final ObjectIntrospection INTROSPECTOR = new ObjectIntrospection(
+      AgentMain.moduleCracker
+  );
   private static final SahabOutput SAHAB_OUTPUT = new SahabOutput();
 
   public static SahabOutput getSahabOutput() {

@@ -7,6 +7,7 @@ import static org.objectweb.asm.Opcodes.RETURN;
 import com.fasterxml.jackson.core.util.DefaultIndenter;
 import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import de.ialistannen.traceaman.module.ModuleCracker;
 import de.ialistannen.traceaman.util.ByteBuddyHelper;
 import de.ialistannen.traceaman.util.ByteBuddyHelper.InsertPosition;
 import de.ialistannen.traceaman.util.Classes;
@@ -51,13 +52,18 @@ import org.objectweb.asm.util.TraceClassVisitor;
 
 public class AgentMain {
 
+  public static ModuleCracker moduleCracker;
+
   public static void premain(String arguments, Instrumentation instrumentation) {
+    moduleCracker = ModuleCracker.getApplicable(instrumentation);
+
     instrumentation.addTransformer(
         new ClassFileTransformer() {
           @Override
-          public byte[] transform(ClassLoader loader, String className,
-              Class<?> classBeingRedefined,
-              ProtectionDomain protectionDomain, byte[] classfileBuffer) {
+          public byte[] transform(
+              ClassLoader loader, String className, Class<?> classBeingRedefined,
+              ProtectionDomain protectionDomain, byte[] classfileBuffer
+          ) {
             try {
               return getBytes(className, classfileBuffer);
             } catch (Throwable t) {
@@ -65,7 +71,8 @@ public class AgentMain {
               throw new RuntimeException(t);
             }
           }
-        }, true
+        },
+        true
     );
     Runtime.getRuntime().addShutdownHook(new Thread(() -> {
       try {
@@ -82,14 +89,14 @@ public class AgentMain {
   }
 
   private static byte[] getBytes(String className, byte[] classfileBuffer) throws Exception {
-    if (!className.endsWith("WebCassandraDirectoryProvider")) {
+    if (!className.endsWith("TestClass")) {
       return classfileBuffer;
     }
     ClassNode classNode = new ClassNode();
     ClassReader classReader = new ClassReader(classfileBuffer);
     classReader.accept(classNode, 0);
     for (MethodNode method : classNode.methods) {
-      if (!method.name.equals("extract")) {
+      if (!method.name.equals("foo")) {
         continue;
       }
 
