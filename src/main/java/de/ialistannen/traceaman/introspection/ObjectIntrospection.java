@@ -39,16 +39,15 @@ public class ObjectIntrospection {
   }
 
   public RuntimeReturnedValue introspectReturnValue(
-      String methodName, Object returned, List<Object> parameters, List<String> stacktrace
+      String methodName, Object returned, List<Object> parameters, List<String> stacktrace, String location
   ) throws IllegalAccessException {
     List<RuntimeValue> fields = introspectFields(returned, 0);
     List<Object> arrayValues = introspectArrayValues(returned, 0);
 
     return new RuntimeReturnedValue(
         // FIXME: Use method return type
-        Kind.RETURN, methodName, returned == null ? null : returned.getClass(),
-        Objects.toString(returned),
-        fields, arrayValues, parameters, stacktrace
+        Kind.RETURN, methodName, returned == null ? null : returned.getClass(), Objects.toString(returned),
+        fields, arrayValues, parameters, stacktrace, location
     );
   }
 

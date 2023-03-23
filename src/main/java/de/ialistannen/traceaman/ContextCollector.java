@@ -9,6 +9,7 @@ import de.ialistannen.traceaman.introspection.StackFrameContext;
 import de.ialistannen.traceaman.util.LocalVariable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class ContextCollector {
 
@@ -46,15 +47,16 @@ public class ContextCollector {
     StackFrameContext stackFrameContext = StackFrameContext.forValues(values);
     LineSnapshot lineSnapshot = new LineSnapshot(className, lineNumber, List.of(stackFrameContext));
 
-    SAHAB_OUTPUT.getBreakpoints().add(lineSnapshot);
+    SAHAB_OUTPUT.getBreakpoint().add(lineSnapshot);
   }
 
   public static void logReturn(
       Object returnValue, String className
   ) {
     try {
+      List<StackWalker.StackFrame> stacktrace = StackFrameContext.getStacktrace();
       RuntimeReturnedValue returned = INTROSPECTOR.introspectReturnValue(
-          className, returnValue, List.of(), StackFrameContext.getStacktrace()
+          className, returnValue, List.of(), stacktrace.stream().map(StackFrameContext::stackFrameToString).collect(Collectors.toList()), StackFrameContext.getLocation(stacktrace)
       );
 
       SAHAB_OUTPUT.getReturns().add(returned);
